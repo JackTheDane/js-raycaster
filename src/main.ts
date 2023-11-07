@@ -101,9 +101,69 @@ function drawMap2d() {
   }
 }
 
+function drawRays3d() {
+  let rayX: number;
+  let rayY: number;
+  let xOffset = 0;
+  let yOffset = 0;
+  let depthOfField: number;
+
+  const rayAngle = playerPosition.angle;
+  for (let r = 0; r < 1; r++) {
+    depthOfField = 0;
+    // Check horizontal lines
+    const inverseTan = -1/Math.tan(rayAngle);
+
+    // Looking up
+    if (rayAngle > Math.PI) {
+      rayY = ((playerPosition.y>>6)<<6) - 0.0001; // TODO: Make work w. cellSize
+      rayX = (playerPosition.y - rayY) * inverseTan + playerPosition.x;
+      yOffset = -MAP_DATA.cellSize;
+      xOffset = -yOffset*inverseTan;
+    }
+    // Looking down
+    else if (rayAngle < Math.PI) {
+      rayY = ((playerPosition.y>>6)<<6) + MAP_DATA.cellSize; // TODO: Make work w. cellSize
+      rayX = (playerPosition.y - rayY) * inverseTan + playerPosition.x;
+      yOffset = MAP_DATA.cellSize;
+      xOffset = -yOffset*inverseTan;
+    }
+    // Looking straight left or right
+    else {
+      rayX = playerPosition.x;
+      rayY = playerPosition.y;
+      depthOfField = 8;
+    }
+
+    while (depthOfField < 8) {
+      const mapX = Math.floor(rayX/MAP_DATA.cellSize);
+      const mapY = Math.floor(rayY/MAP_DATA.cellSize);
+      const mapPosition = mapY * MAP_DATA.xCells+mapX;
+
+
+      if (mapPosition < mapX*mapY && mapLayout[mapY][mapX] === 1) {
+        // Hit wall
+        depthOfField = 8;
+      } else {
+        rayX += xOffset;
+        rayY += yOffset;
+        depthOfField += 1;
+      }
+    }
+
+    ctx.strokeStyle = 'green';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(playerPosition.x, playerPosition.y);
+    ctx.lineTo(rayX, rayY);
+    ctx.stroke();
+  }
+}
+
 function display() {
   clearScreen();
   drawMap2d();
+  drawRays3d();
   checkForPressedKeys();
   drawPlayer();
 }
