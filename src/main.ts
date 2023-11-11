@@ -114,7 +114,7 @@ function drawRays2d() {
 
     // Looking up
     if (rayAngle > Math.PI) {
-      rayY = playerPosition.y - playerPosition.y % MAP_DATA.cellSize
+      rayY = playerPosition.y - playerPosition.y % MAP_DATA.cellSize - 0.0001
       rayX = (playerPosition.y - rayY) * inverseTan + playerPosition.x;
       yOffset = -MAP_DATA.cellSize;
       xOffset = -yOffset*inverseTan;
@@ -139,7 +139,7 @@ function drawRays2d() {
       const mapPosition = mapY * MAP_DATA.xCells+mapX;
 
       if (
-        mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
+        mapPosition > 0 && mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
         mapLayout[mapPosition] === 1) {
           console.log('HitWall!');
         // Hit wall
