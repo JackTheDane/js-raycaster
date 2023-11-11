@@ -20,17 +20,17 @@ const MAP_DATA = {
   xCells: 8,
   yCells: 8,
   cellSize: 64
-}
+} as const;
 
 const mapLayout = [
-  [1, 1, 1, 1, 1, 1, 1, 1],
-  [1, 0, 1, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 0, 0, 0, 1],
-  [1, 0, 1, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 0, 0, 0, 0, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 1, 1, 1, 1, 1, 1, 1],
+  1, 1, 1, 1, 1, 1, 1, 1,
+  1, 0, 1, 0, 0, 0, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 1, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 1, 1, 1, 1, 1, 1, 1,
 ]
 
 function clearScreen() {
@@ -88,7 +88,7 @@ function checkForPressedKeys() {
 function drawMap2d() {
   for (let y = 0; y < MAP_DATA.yCells; y++) {
     for (let x = 0; x < MAP_DATA.xCells; x++) {
-      const isWall = mapLayout[y][x] === 1;
+      const isWall = mapLayout[y*MAP_DATA.xCells+x] === 1;
       ctx.fillStyle = isWall ? 'white' : 'black';
       const posX = x * MAP_DATA.cellSize;
       const posY = y * MAP_DATA.cellSize;
@@ -134,15 +134,18 @@ function drawRays2d() {
     }
 
     while (depthOfField < MAX_DEPTH_OF_FIELD) {
-      const mapX = Math.floor(rayX/MAP_DATA.cellSize);
-      const mapY = Math.floor(rayY/MAP_DATA.cellSize);
+      const mapX = (rayX - rayX % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+      const mapY = (rayY - rayY % MAP_DATA.cellSize) / MAP_DATA.cellSize;
       const mapPosition = mapY * MAP_DATA.xCells+mapX;
 
-
-      if (mapPosition < mapX*mapY && mapLayout[mapY]?.[mapX] === 1) {
+      if (
+        mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
+        mapLayout[mapPosition] === 1) {
+          console.log('HitWall!');
         // Hit wall
         depthOfField = MAX_DEPTH_OF_FIELD;
-      } else {
+      }
+      else {
         rayX += xOffset;
         rayY += yOffset;
         depthOfField += 1;
@@ -155,6 +158,8 @@ function drawRays2d() {
     ctx.moveTo(playerPosition.x, playerPosition.y);
     ctx.lineTo(rayX, rayY);
     ctx.stroke();
+    ctx.fillStyle = 'red';
+    ctx.fillRect(rayX - 2, rayY - 2, 4, 4);
   }
 }
 
