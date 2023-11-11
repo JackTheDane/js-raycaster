@@ -2,8 +2,8 @@ import './index.css';
 
 const canvas = document.querySelector('canvas')!;
 const ctx = canvas.getContext('2d')!;
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
+const CANVAS_WIDTH = canvas.width;
+const CANVAS_HEIGHT = canvas.height;
 const INTERVAL = 1 / 60 * 1000;
 const ONE_DEGREE_IN_RADIANS = 0.0174533;
 
@@ -35,7 +35,7 @@ const mapLayout = [
 ]
 
 function clearScreen() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT)
+  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 }
 
 function drawPlayer() {
@@ -112,6 +112,8 @@ function drawRays2d() {
   let yOffset = 0;
   let depthOfField: number;
   let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*30;
+  const rayScreenWidth = CANVAS_WIDTH/2/60;
+  let color: string;
 
   if (rayAngle<0) rayAngle += 2*Math.PI;
   if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
@@ -216,20 +218,40 @@ function drawRays2d() {
       }
     }
 
+    let shortestDistanceToHit: number;
+
     if (distanceToHitHorizontal < distanceToHitVertical) {
       rayX = horizontalRayX;
       rayY = horizontalRayY;
+      shortestDistanceToHit = distanceToHitHorizontal
+      color = 'hsl(207.67 100% 40%)';
     } else {
       rayX = verticalRayX;
       rayY = verticalRayY;
+      shortestDistanceToHit = distanceToHitVertical
+      color = 'hsl(207.67 100% 35%)';
     }
 
-    ctx.strokeStyle = 'green';
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(playerPosition.x, playerPosition.y);
     ctx.lineTo(rayX, rayY);
     ctx.stroke();
+
+    // Draw 3d walls
+    let angleDifference = playerPosition.angle - rayAngle;
+    if (angleDifference<0) angleDifference += 2*Math.PI;
+    if (angleDifference>2*Math.PI) angleDifference -= 2*Math.PI;
+    shortestDistanceToHit = shortestDistanceToHit*Math.cos(angleDifference);
+
+    let lineHeight = (MAP_DATA.cellSize*CANVAS_HEIGHT) / shortestDistanceToHit;
+    if (lineHeight > CANVAS_HEIGHT) lineHeight = CANVAS_HEIGHT;
+    const topLeftPointX = CANVAS_WIDTH / 2 + rayScreenWidth*r;
+    const topLeftPointY = CANVAS_HEIGHT / 2 - lineHeight/2;
+
+    ctx.fillStyle = color;
+    ctx.fillRect(topLeftPointX, topLeftPointY, rayScreenWidth, lineHeight);
 
     rayAngle += ONE_DEGREE_IN_RADIANS;
     if (rayAngle<0) rayAngle += 2*Math.PI;
