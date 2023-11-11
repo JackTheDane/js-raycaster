@@ -6,6 +6,8 @@ const CANVAS_WIDTH = canvas.width;
 const CANVAS_HEIGHT = canvas.height;
 const INTERVAL = 1 / 60 * 1000;
 const ONE_DEGREE_IN_RADIANS = 0.0174533;
+const NUMBER_OF_RAYS = 120;
+const FIELD_OF_VIEW = 60;
 
 const pressedKeys = new Set<string>();
 
@@ -26,7 +28,7 @@ const MAP_DATA = {
 const mapLayout = [
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 0, 1, 0, 0, 0, 0, 1,
-  1, 0, 1, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 1, 0, 1,
   1, 0, 1, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 1, 0, 1,
@@ -101,9 +103,18 @@ const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number
 
 const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
 
+const getMapCellForCoordinate = (x: number, y: number): number | null => {
+  const mapX = (x - x % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+  const mapY = (y - y % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+  const mapIndex = mapY * MAP_DATA.xCells+mapX;
+
+  return mapLayout[mapIndex] ?? null;
+}
+
 const MAX_DEPTH_OF_FIELD = 8;
 const P2 = Math.PI/2;
 const P3 = P2*3;
+
 
 function drawRays2d() {
   let rayX: number;
@@ -111,14 +122,14 @@ function drawRays2d() {
   let xOffset = 0;
   let yOffset = 0;
   let depthOfField: number;
-  let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*30;
-  const rayScreenWidth = CANVAS_WIDTH/2/60;
+  let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*(FIELD_OF_VIEW/2);
+  const rayScreenWidth = CANVAS_WIDTH/2/NUMBER_OF_RAYS;
   let color: string;
 
   if (rayAngle<0) rayAngle += 2*Math.PI;
   if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
 
-  for (let r = 0; r < 60; r++) {
+  for (let r = 0; r < NUMBER_OF_RAYS; r++) {
     depthOfField = 0;
 
     // ---- Check vertical lines ---- //
@@ -149,13 +160,7 @@ function drawRays2d() {
     }
 
     while (depthOfField < MAX_DEPTH_OF_FIELD) {
-      const mapX = (rayX - rayX % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-      const mapY = (rayY - rayY % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-      const mapPosition = mapY * MAP_DATA.xCells+mapX;
-
-      if (
-        mapPosition > 0 && mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
-        mapLayout[mapPosition] === 1) {
+      if (getMapCellForCoordinate(rayX, rayY) === 1) {
         // Hit wall
         depthOfField = MAX_DEPTH_OF_FIELD;
         verticalRayX = rayX;
@@ -198,13 +203,7 @@ function drawRays2d() {
     }
 
     while (depthOfField < MAX_DEPTH_OF_FIELD) {
-      const mapX = (rayX - rayX % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-      const mapY = (rayY - rayY % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-      const mapPosition = mapY * MAP_DATA.xCells+mapX;
-
-      if (
-        mapPosition > 0 && mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
-        mapLayout[mapPosition] === 1) {
+      if (getMapCellForCoordinate(rayX, rayY) === 1) {
           horizontalRayX = rayX;
           horizontalRayY = rayY;
           distanceToHitHorizontal = getPlayerDistanceToPoint(rayX, rayY);
@@ -253,7 +252,7 @@ function drawRays2d() {
     ctx.fillStyle = color;
     ctx.fillRect(topLeftPointX, topLeftPointY, rayScreenWidth, lineHeight);
 
-    rayAngle += ONE_DEGREE_IN_RADIANS;
+    rayAngle += ONE_DEGREE_IN_RADIANS*(FIELD_OF_VIEW / NUMBER_OF_RAYS);
     if (rayAngle<0) rayAngle += 2*Math.PI;
     if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
   }
