@@ -6,8 +6,10 @@ const CANVAS_WIDTH = canvas.width;
 const CANVAS_HEIGHT = canvas.height;
 const INTERVAL = 1 / 60 * 1000;
 const ONE_DEGREE_IN_RADIANS = 0.0174533;
-const NUMBER_OF_RAYS = 120;
+const NUMBER_OF_RAYS = 300;
 const FIELD_OF_VIEW = 60;
+const SPEED = 3;
+const TURNING_SPEED_INCREMENT = 0.05;
 
 const pressedKeys = new Set<string>();
 
@@ -36,6 +38,18 @@ const mapLayout = [
   1, 1, 1, 1, 1, 1, 1, 1,
 ]
 
+const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number) => Math.sqrt( (x2-x1) * (x2-x1) + (y2-y1) * (y2-y1) );
+
+const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
+
+const getMapCellForCoordinate = (x: number, y: number): number | null => {
+  const mapX = (x - x % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+  const mapY = (y - y % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+  const mapIndex = mapY * MAP_DATA.xCells+mapX;
+
+  return mapLayout[mapIndex] ?? null;
+}
+
 function clearScreen() {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 }
@@ -56,13 +70,13 @@ function drawPlayer() {
   ctx.stroke();
 }
 
-const SPEED = 2;
 const MAX_ANGLE = 2* Math.PI;
-const TURNING_INCREMENT = 0.05;
+
+const checkForCollision = (x: number, y: number) => getMapCellForCoordinate(x, y) === 1;
 
 function checkForPressedKeys() {
   if (pressedKeys.has('a')) {
-    playerPosition.angle -= TURNING_INCREMENT;
+    playerPosition.angle -= TURNING_SPEED_INCREMENT;
     if (playerPosition.angle < 0) {
       playerPosition.angle += MAX_ANGLE;
     }
@@ -70,7 +84,7 @@ function checkForPressedKeys() {
     playerPosition.deltaY = Math.sin(playerPosition.angle) * SPEED;
   }
   if (pressedKeys.has('d')) {
-    playerPosition.angle += TURNING_INCREMENT;
+    playerPosition.angle += TURNING_SPEED_INCREMENT;
     if (playerPosition.angle > MAX_ANGLE) {
       playerPosition.angle -= MAX_ANGLE;
     }
@@ -78,12 +92,34 @@ function checkForPressedKeys() {
     playerPosition.deltaY = Math.sin(playerPosition.angle) * SPEED;
   }
   if (pressedKeys.has('w')) {
-    playerPosition.x += playerPosition.deltaX;
-    playerPosition.y += playerPosition.deltaY;
+    let newPlayerX = playerPosition.x + playerPosition.deltaX;
+    let newPlayerY = playerPosition.y + playerPosition.deltaY;
+
+    if (checkForCollision(newPlayerX, playerPosition.y)) {
+      newPlayerX = playerPosition.x;
+    }
+
+    if (checkForCollision(playerPosition.x, newPlayerY)) {
+      newPlayerY = playerPosition.y;
+    }
+
+    playerPosition.x = newPlayerX
+    playerPosition.y = newPlayerY
   }
   if (pressedKeys.has('s')) {
-    playerPosition.x -= playerPosition.deltaX;
-    playerPosition.y -= playerPosition.deltaY;
+    let newPlayerX = playerPosition.x - playerPosition.deltaX;
+    let newPlayerY = playerPosition.y - playerPosition.deltaY;
+
+    if (checkForCollision(newPlayerX, playerPosition.y)) {
+      newPlayerX = playerPosition.x;
+    }
+
+    if (checkForCollision(playerPosition.x, newPlayerY)) {
+      newPlayerY = playerPosition.y;
+    }
+
+    playerPosition.x = newPlayerX
+    playerPosition.y = newPlayerY
   }
 }
 
@@ -99,17 +135,7 @@ function drawMap2d() {
   }
 }
 
-const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number) => Math.sqrt( (x2-x1) * (x2-x1) + (y2-y1) * (y2-y1) );
 
-const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
-
-const getMapCellForCoordinate = (x: number, y: number): number | null => {
-  const mapX = (x - x % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-  const mapY = (y - y % MAP_DATA.cellSize) / MAP_DATA.cellSize;
-  const mapIndex = mapY * MAP_DATA.xCells+mapX;
-
-  return mapLayout[mapIndex] ?? null;
-}
 
 const MAX_DEPTH_OF_FIELD = 8;
 const P2 = Math.PI/2;
