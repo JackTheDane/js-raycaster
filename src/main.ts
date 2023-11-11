@@ -58,7 +58,6 @@ const MAX_ANGLE = 2* Math.PI;
 const TURNING_INCREMENT = 0.05;
 
 function checkForPressedKeys() {
-
   if (pressedKeys.has('a')) {
     playerPosition.angle -= TURNING_INCREMENT;
     if (playerPosition.angle < 0) {
@@ -97,7 +96,13 @@ function drawMap2d() {
   }
 }
 
+const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number) => Math.sqrt( (x2-x1) * (x2-x1) + (y2-y1) * (y2-y1) );
+
+const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
+
 const MAX_DEPTH_OF_FIELD = 8;
+const P2 = Math.PI/2;
+const P3 = P2*3;
 
 function drawRays2d() {
   let rayX: number;
@@ -106,15 +111,70 @@ function drawRays2d() {
   let yOffset = 0;
   let depthOfField: number;
 
+
   const rayAngle = playerPosition.angle;
+  const inverseTan = -1/Math.tan(rayAngle);
+  const negativeTan = -Math.tan(rayAngle);
+
   for (let r = 0; r < 1; r++) {
     depthOfField = 0;
-    // Check horizontal lines
-    const inverseTan = -1/Math.tan(rayAngle);
+
+    // ---- Check vertical lines ---- //
+    let distanceToHitVertical = 100000;
+    let verticalRayX = 0;
+    let verticalRayY = 0;
+
+    // Looking left
+    if (rayAngle > P2 && rayAngle < P3) {
+      rayX = playerPosition.x - playerPosition.x % MAP_DATA.cellSize - 0.0001;
+      rayY = (playerPosition.x - rayX) * negativeTan + playerPosition.y;
+      xOffset = -MAP_DATA.cellSize;
+      yOffset = -xOffset*negativeTan;
+    }
+    // Looking right
+    else if (rayAngle < P2 || rayAngle > P3) {
+      rayX = playerPosition.x - playerPosition.x % MAP_DATA.cellSize + MAP_DATA.cellSize;
+      rayY = (playerPosition.x - rayX) * negativeTan + playerPosition.y;
+      xOffset = MAP_DATA.cellSize;
+      yOffset = -xOffset*negativeTan;
+    }
+    // Looking straight up or down
+    else {
+      rayX = playerPosition.x;
+      rayY = playerPosition.y;
+      depthOfField = MAX_DEPTH_OF_FIELD;
+    }
+
+    while (depthOfField < MAX_DEPTH_OF_FIELD) {
+      const mapX = (rayX - rayX % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+      const mapY = (rayY - rayY % MAP_DATA.cellSize) / MAP_DATA.cellSize;
+      const mapPosition = mapY * MAP_DATA.xCells+mapX;
+
+      if (
+        mapPosition > 0 && mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
+        mapLayout[mapPosition] === 1) {
+        // Hit wall
+        depthOfField = MAX_DEPTH_OF_FIELD;
+        verticalRayX = rayX;
+        verticalRayY = rayY;
+        distanceToHitVertical = getPlayerDistanceToPoint(rayX, rayY);
+      }
+      else {
+        rayX += xOffset;
+        rayY += yOffset;
+        depthOfField += 1;
+      }
+    }
+
+    // ---- Check horizontal lines ---- //
+    let distanceToHitHorizontal = 100000;
+    let horizontalRayX = 0;
+    let horizontalRayY = 0;
+    depthOfField = 0;
 
     // Looking up
     if (rayAngle > Math.PI) {
-      rayY = playerPosition.y - playerPosition.y % MAP_DATA.cellSize - 0.0001
+      rayY = playerPosition.y - playerPosition.y % MAP_DATA.cellSize - 0.0001;
       rayX = (playerPosition.y - rayY) * inverseTan + playerPosition.x;
       yOffset = -MAP_DATA.cellSize;
       xOffset = -yOffset*inverseTan;
@@ -141,7 +201,9 @@ function drawRays2d() {
       if (
         mapPosition > 0 && mapPosition < MAP_DATA.xCells*MAP_DATA.yCells &&
         mapLayout[mapPosition] === 1) {
-          console.log('HitWall!');
+          horizontalRayX = rayX;
+          horizontalRayY = rayY;
+          distanceToHitHorizontal = getPlayerDistanceToPoint(rayX, rayY);
         // Hit wall
         depthOfField = MAX_DEPTH_OF_FIELD;
       }
@@ -152,14 +214,20 @@ function drawRays2d() {
       }
     }
 
+    if (distanceToHitHorizontal < distanceToHitVertical) {
+      rayX = horizontalRayX;
+      rayY = horizontalRayY;
+    } else {
+      rayX = verticalRayX;
+      rayY = verticalRayY;
+    }
+
     ctx.strokeStyle = 'green';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(playerPosition.x, playerPosition.y);
     ctx.lineTo(rayX, rayY);
     ctx.stroke();
-    ctx.fillStyle = 'red';
-    ctx.fillRect(rayX - 2, rayY - 2, 4, 4);
   }
 }
 
