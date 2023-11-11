@@ -5,6 +5,7 @@ const ctx = canvas.getContext('2d')!;
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const INTERVAL = 1 / 60 * 1000;
+const ONE_DEGREE_IN_RADIANS = 0.0174533;
 
 const pressedKeys = new Set<string>();
 
@@ -110,16 +111,16 @@ function drawRays2d() {
   let xOffset = 0;
   let yOffset = 0;
   let depthOfField: number;
+  let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*30;
 
+  if (rayAngle<0) rayAngle += 2*Math.PI;
+  if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
 
-  const rayAngle = playerPosition.angle;
-  const inverseTan = -1/Math.tan(rayAngle);
-  const negativeTan = -Math.tan(rayAngle);
-
-  for (let r = 0; r < 1; r++) {
+  for (let r = 0; r < 60; r++) {
     depthOfField = 0;
 
     // ---- Check vertical lines ---- //
+    const negativeTan = -Math.tan(rayAngle);
     let distanceToHitVertical = 100000;
     let verticalRayX = 0;
     let verticalRayY = 0;
@@ -167,6 +168,7 @@ function drawRays2d() {
     }
 
     // ---- Check horizontal lines ---- //
+    const inverseTan = -1/Math.tan(rayAngle);
     let distanceToHitHorizontal = 100000;
     let horizontalRayX = 0;
     let horizontalRayY = 0;
@@ -228,6 +230,10 @@ function drawRays2d() {
     ctx.moveTo(playerPosition.x, playerPosition.y);
     ctx.lineTo(rayX, rayY);
     ctx.stroke();
+
+    rayAngle += ONE_DEGREE_IN_RADIANS;
+    if (rayAngle<0) rayAngle += 2*Math.PI;
+    if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
   }
 }
 
