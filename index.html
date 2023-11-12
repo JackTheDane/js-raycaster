@@ -8,6 +8,20 @@
   </head>
   <body>
     <canvas height="512" width="1024"></canvas>
+
+    <div class="inputs">
+      <div>
+        <label for="field-of-view-input">FOV</label>
+        <input type="range" name="field-of-view" id="field-of-view-input" min="15" max="120" step="1" value="60">
+      </div>
+      <div>
+        <label for="number-of-rays-input">Nr. of rays</label>
+        <input type="range" name="number-of-rays" id="number-of-rays-input" min="1" max="500" step="1" value="300">
+      </div>
+    </div>
+
+
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

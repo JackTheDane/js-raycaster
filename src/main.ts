@@ -1,4 +1,5 @@
 import './index.css';
+import { RangeInputController } from "./InputController";
 
 const canvas = document.querySelector('canvas')!;
 const ctx = canvas.getContext('2d')!;
@@ -6,12 +7,13 @@ const CANVAS_WIDTH = canvas.width;
 const CANVAS_HEIGHT = canvas.height;
 const INTERVAL = 1 / 60 * 1000;
 const ONE_DEGREE_IN_RADIANS = 0.0174533;
-const NUMBER_OF_RAYS = 300;
-const FIELD_OF_VIEW = 60;
 const SPEED = 3;
 const TURNING_SPEED_INCREMENT = 0.05;
 
 const pressedKeys = new Set<string>();
+
+const fovSlider = new RangeInputController('#field-of-view-input');
+const numberOfRaysSlider = new RangeInputController('#number-of-rays-input');
 
 const playerPosition = {
   x: 300,
@@ -148,14 +150,14 @@ function drawRays2d() {
   let xOffset = 0;
   let yOffset = 0;
   let depthOfField: number;
-  let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*(FIELD_OF_VIEW/2);
-  const rayScreenWidth = CANVAS_WIDTH/2/NUMBER_OF_RAYS;
+  let rayAngle = playerPosition.angle - ONE_DEGREE_IN_RADIANS*(fovSlider.value/2);
+  const rayScreenWidth = CANVAS_WIDTH/2/numberOfRaysSlider.value;
   let color: string;
 
   if (rayAngle<0) rayAngle += 2*Math.PI;
   if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
 
-  for (let r = 0; r < NUMBER_OF_RAYS; r++) {
+  for (let r = 0; r < numberOfRaysSlider.value; r++) {
     depthOfField = 0;
 
     // ---- Check vertical lines ---- //
@@ -276,9 +278,14 @@ function drawRays2d() {
     const topLeftPointY = CANVAS_HEIGHT / 2 - lineHeight/2;
 
     ctx.fillStyle = color;
-    ctx.fillRect(topLeftPointX, topLeftPointY, rayScreenWidth, lineHeight);
+    ctx.fillRect(
+      topLeftPointX,
+      topLeftPointY,
+      rayScreenWidth + 1, // Add 1px to reduce empty space between rects
+      lineHeight
+    );
 
-    rayAngle += ONE_DEGREE_IN_RADIANS*(FIELD_OF_VIEW / NUMBER_OF_RAYS);
+    rayAngle += ONE_DEGREE_IN_RADIANS*(fovSlider.value / numberOfRaysSlider.value);
     if (rayAngle<0) rayAngle += 2*Math.PI;
     if (rayAngle>2*Math.PI) rayAngle -= 2*Math.PI;
   }

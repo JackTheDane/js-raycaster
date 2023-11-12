@@ -1,3 +1,22 @@
 canvas {
   background-color: darkgrey;
 }
+
+.inputs {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+}
+
+input[type="range"] {
+  position: relative;
+  margin-right: 30px;
+}
+
+
+input[type="range"]::after {
+  content: attr(data-value);
+  position: absolute;
+  right: -5px;
+  transform: translateX(100%);
+}
