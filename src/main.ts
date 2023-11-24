@@ -56,6 +56,15 @@ function clearScreen() {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
 }
 
+function drawSkybox() {
+  // Sky
+  ctx.fillStyle = 'blue';
+  ctx.fillRect(CANVAS_WIDTH / 2, 0, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+  // Ground
+  ctx.fillStyle = 'lightblue';
+  ctx.fillRect(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+}
+
 function drawPlayer() {
   const size = 8;
 
@@ -144,7 +153,7 @@ const P2 = Math.PI/2;
 const P3 = P2*3;
 
 
-function drawRays2d() {
+function drawRays3d() {
   let rayX: number;
   let rayY: number;
   let xOffset = 0;
@@ -293,8 +302,9 @@ function drawRays2d() {
 
 function display() {
   clearScreen();
+  drawSkybox();
   drawMap2d();
-  drawRays2d();
+  drawRays3d();
   checkForPressedKeys();
   drawPlayer();
 }
