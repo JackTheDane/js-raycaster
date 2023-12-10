@@ -1,5 +1,6 @@
 import './index.css';
 import { RangeInputController } from "./InputController";
+import { MouseController } from './MouseController';
 
 const canvas = document.querySelector('canvas')!;
 const ctx = canvas.getContext('2d')!;
@@ -11,9 +12,6 @@ const SPEED = 3;
 const TURNING_SPEED_INCREMENT = 0.05;
 
 const pressedKeys = new Set<string>();
-
-const fovSlider = new RangeInputController('#field-of-view-input');
-const numberOfRaysSlider = new RangeInputController('#number-of-rays-input');
 
 const playerPosition = {
   x: 300,
@@ -44,13 +42,36 @@ const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number
 
 const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
 
-const getMapCellForCoordinate = (x: number, y: number): number | null => {
+const getMapCellIndexForCoordinate = (x: number, y: number): number | null => {
   const mapX = (x - x % MAP_DATA.cellSize) / MAP_DATA.cellSize;
   const mapY = (y - y % MAP_DATA.cellSize) / MAP_DATA.cellSize;
   const mapIndex = mapY * MAP_DATA.xCells+mapX;
 
-  return mapLayout[mapIndex] ?? null;
+  if (mapLayout[mapIndex] == null) {
+    return null;
+  }
+
+  return mapIndex;
 }
+
+const getMapCellValueForCoordinate = (x: number, y: number): number | null => {
+  const mapIndex = getMapCellIndexForCoordinate(x, y);
+
+  return mapIndex ? mapLayout[mapIndex] : null;
+}
+
+const fovSlider = new RangeInputController('#field-of-view-input');
+const numberOfRaysSlider = new RangeInputController('#number-of-rays-input');
+
+new MouseController(canvas, (x, y, clickType) => {
+  const mapCellIndexForCoordinate = getMapCellIndexForCoordinate(x, y);
+
+  if (mapCellIndexForCoordinate == null) {
+    return;
+  }
+
+  mapLayout[mapCellIndexForCoordinate] = clickType === 'left' ? 1 : 0;
+});
 
 function clearScreen() {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -83,7 +104,7 @@ function drawPlayer() {
 
 const MAX_ANGLE = 2* Math.PI;
 
-const checkForCollision = (x: number, y: number) => getMapCellForCoordinate(x, y) === 1;
+const checkForCollision = (x: number, y: number) => getMapCellValueForCoordinate(x, y) === 1;
 
 function checkForPressedKeys() {
   if (pressedKeys.has('a')) {
@@ -149,11 +170,11 @@ function drawMap2d() {
 
 
 const MAX_DEPTH_OF_FIELD = 8;
-const P2 = Math.PI/2;
-const P3 = P2*3;
+const HALF_OF_PI = Math.PI/2;
+const ONE_AND_A_HALF_OF_PI = HALF_OF_PI*3;
 
 
-function drawRays3d() {
+function drawRays() {
   let rayX: number;
   let rayY: number;
   let xOffset = 0;
@@ -176,14 +197,14 @@ function drawRays3d() {
     let verticalRayY = 0;
 
     // Looking left
-    if (rayAngle > P2 && rayAngle < P3) {
+    if (rayAngle > HALF_OF_PI && rayAngle < ONE_AND_A_HALF_OF_PI) {
       rayX = playerPosition.x - playerPosition.x % MAP_DATA.cellSize - 0.0001;
       rayY = (playerPosition.x - rayX) * negativeTan + playerPosition.y;
       xOffset = -MAP_DATA.cellSize;
       yOffset = -xOffset*negativeTan;
     }
     // Looking right
-    else if (rayAngle < P2 || rayAngle > P3) {
+    else if (rayAngle < HALF_OF_PI || rayAngle > ONE_AND_A_HALF_OF_PI) {
       rayX = playerPosition.x - playerPosition.x % MAP_DATA.cellSize + MAP_DATA.cellSize;
       rayY = (playerPosition.x - rayX) * negativeTan + playerPosition.y;
       xOffset = MAP_DATA.cellSize;
@@ -197,7 +218,7 @@ function drawRays3d() {
     }
 
     while (depthOfField < MAX_DEPTH_OF_FIELD) {
-      if (getMapCellForCoordinate(rayX, rayY) === 1) {
+      if (getMapCellValueForCoordinate(rayX, rayY) === 1) {
         // Hit wall
         depthOfField = MAX_DEPTH_OF_FIELD;
         verticalRayX = rayX;
@@ -240,7 +261,7 @@ function drawRays3d() {
     }
 
     while (depthOfField < MAX_DEPTH_OF_FIELD) {
-      if (getMapCellForCoordinate(rayX, rayY) === 1) {
+      if (getMapCellValueForCoordinate(rayX, rayY) === 1) {
           horizontalRayX = rayX;
           horizontalRayY = rayY;
           distanceToHitHorizontal = getPlayerDistanceToPoint(rayX, rayY);
@@ -304,7 +325,7 @@ function display() {
   clearScreen();
   drawSkybox();
   drawMap2d();
-  drawRays3d();
+  drawRays();
   checkForPressedKeys();
   drawPlayer();
 }
