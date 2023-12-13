@@ -27,7 +27,9 @@ const MAP_DATA = {
   cellSize: 64
 } as const;
 
-const mapLayout = [
+type MapCell = number;
+
+const mapLayout: MapCell[] = [
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 0, 1, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 1, 0, 1,
@@ -38,11 +40,20 @@ const mapLayout = [
   1, 1, 1, 1, 1, 1, 1, 1,
 ]
 
+let mapCellIndexHoveredByMouse: number | null = null;
+
 const getDistanceBetweenPoints = (x1: number, y1: number, x2: number, y2: number) => Math.sqrt( (x2-x1) * (x2-x1) + (y2-y1) * (y2-y1) );
 
 const getPlayerDistanceToPoint = (x: number, y: number) => getDistanceBetweenPoints(playerPosition.x, playerPosition.y, x, y);
 
 const getMapCellIndexForCoordinate = (x: number, y: number): number | null => {
+  const isOutOfBoundsX = x >= CANVAS_WIDTH / 2;
+  const isOutOfBoundsY = y >= CANVAS_HEIGHT;
+
+  if (isOutOfBoundsX || isOutOfBoundsY) {
+    return null;
+  }
+
   const mapX = (x - x % MAP_DATA.cellSize) / MAP_DATA.cellSize;
   const mapY = (y - y % MAP_DATA.cellSize) / MAP_DATA.cellSize;
   const mapIndex = mapY * MAP_DATA.xCells+mapX;
@@ -63,7 +74,7 @@ const getMapCellValueForCoordinate = (x: number, y: number): number | null => {
 const fovSlider = new RangeInputController('#field-of-view-input');
 const numberOfRaysSlider = new RangeInputController('#number-of-rays-input');
 
-new MouseController(canvas, (x, y, clickType) => {
+const mouseController = new MouseController(canvas, (x, y, clickType) => {
   const mapCellIndexForCoordinate = getMapCellIndexForCoordinate(x, y);
 
   if (mapCellIndexForCoordinate == null) {
@@ -72,6 +83,10 @@ new MouseController(canvas, (x, y, clickType) => {
 
   mapLayout[mapCellIndexForCoordinate] = clickType === 'left' ? 1 : 0;
 });
+
+function checkForMapCellHoveredByMouse() {
+  mapCellIndexHoveredByMouse = mouseController.mousePosition ? getMapCellIndexForCoordinate(mouseController.mousePosition.x, mouseController.mousePosition.y) : null;
+}
 
 function clearScreen() {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
@@ -155,18 +170,48 @@ function checkForPressedKeys() {
   }
 }
 
+function setCursorType() {
+  canvas.style.cursor = mapCellIndexHoveredByMouse == null ? 'unset' : 'pointer';
+}
+
+function drawMapCell(color: string, mapCellX: number, mapCellY: number) {
+  ctx.fillStyle = color;
+  const posX = mapCellX * MAP_DATA.cellSize;
+  const posY = mapCellY * MAP_DATA.cellSize;
+  ctx.fillRect(posX + 1, posY + 1, MAP_DATA.cellSize - 1, MAP_DATA.cellSize - 1);
+}
+
+
+
+function getColorForMapCellIndex(mapCellIndex: number) {
+  const mapCell = mapLayout.at(mapCellIndex);
+  if (mapCell == null) return;
+  const isWall = mapCell === 1;
+
+  return isWall ? 'black' : 'white';
+}
+
 function drawMap2d() {
   for (let y = 0; y < MAP_DATA.yCells; y++) {
     for (let x = 0; x < MAP_DATA.xCells; x++) {
-      const isWall = mapLayout[y*MAP_DATA.xCells+x] === 1;
-      ctx.fillStyle = isWall ? 'white' : 'black';
-      const posX = x * MAP_DATA.cellSize;
-      const posY = y * MAP_DATA.cellSize;
-      ctx.fillRect(posX + 1, posY + 1, MAP_DATA.cellSize - 1, MAP_DATA.cellSize - 1);
+      const mapCellIndex = y*MAP_DATA.xCells+x;
+      const colorForMapCellIndex = getColorForMapCellIndex(mapCellIndex);
+
+      if (colorForMapCellIndex == null) return;
+
+      drawMapCell(colorForMapCellIndex, x, y);
     }
   }
 }
 
+function drawHoveredMapCellHighlight() {
+  if (mapCellIndexHoveredByMouse == null) return;
+
+  const mapCellX = mapCellIndexHoveredByMouse % MAP_DATA.xCells;
+  const mapCellY = Math.floor(mapCellIndexHoveredByMouse/MAP_DATA.yCells);
+
+  drawMapCell('hsla(0, 0%, 50%, 0.4)', mapCellX, mapCellY);
+}
 
 
 const MAX_DEPTH_OF_FIELD = 8;
@@ -281,12 +326,12 @@ function drawRays() {
       rayX = horizontalRayX;
       rayY = horizontalRayY;
       shortestDistanceToHit = distanceToHitHorizontal
-      color = 'hsl(207.67 100% 40%)';
+      color = 'hsl(205 100% 40%)';
     } else {
       rayX = verticalRayX;
       rayY = verticalRayY;
       shortestDistanceToHit = distanceToHitVertical
-      color = 'hsl(207.67 100% 35%)';
+      color = 'hsl(205 100% 35%)';
     }
 
     ctx.strokeStyle = color;
@@ -323,11 +368,14 @@ function drawRays() {
 
 function display() {
   clearScreen();
+  checkForMapCellHoveredByMouse();
+  setCursorType();
   drawSkybox();
   drawMap2d();
   drawRays();
   checkForPressedKeys();
   drawPlayer();
+  drawHoveredMapCellHighlight();
 }
 
 function init() {
