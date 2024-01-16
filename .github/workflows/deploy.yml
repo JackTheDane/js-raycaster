@@ -27,10 +27,20 @@ jobs:
         node-version: '18'
 
     - name: Install dependencies
-      run: yarn install  # use yarn instead of npm
+      run: yarn install
 
     - name: Build
-      run: yarn build  # use yarn instead of npm
+      run: yarn build
+
+  deploy:
+    needs: build
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: ./dist
 
     - name: Deploy to GitHub Pages
       uses: actions/deploy-pages@v4
