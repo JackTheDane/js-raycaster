@@ -71,8 +71,8 @@ const getMapCellValueForCoordinate = (x: number, y: number): number | null => {
   return mapIndex ? mapLayout[mapIndex] : null;
 }
 
-const fovSlider = new RangeInputController('#field-of-view-input');
-const numberOfRaysSlider = new RangeInputController('#number-of-rays-input');
+const fovSlider = new RangeInputController(document.querySelector('#field-of-view-input')!);
+const numberOfRaysSlider = new RangeInputController(document.querySelector('#number-of-rays-input')!);
 
 const mouseController = new MouseController(canvas, (x, y, clickType) => {
   const mapCellIndexForCoordinate = getMapCellIndexForCoordinate(x, y);
