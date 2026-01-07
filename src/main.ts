@@ -1,5 +1,5 @@
 import './index.css';
-import { RangeInputController } from "./InputController";
+import { RangeInputController } from "./RangeInputController";
 import { MouseController } from './MouseController';
 
 const canvas = document.querySelector('canvas')!;
